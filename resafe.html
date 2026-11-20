@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RE:SAFE</title>
+<style>
+:root{--bg:#f4f6f9;--card:#fff;--tx:#0b1f3a;--mu:#5b6b80;--bd:#e1e6ed;--nv:#0b1f3a;--mi:#3cc9a8;--lb:#7fb8f0;--wa:#e8893a;--rd:#d9534f;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0a1424;--card:#12213a;--tx:#e8eef7;--mu:#93a4bb;--bd:#223656;--nv:#050b16}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 -apple-system,"Pretendard","Noto Sans KR",sans-serif}
+.app{display:grid;grid-template-columns:200px 1fr 250px;min-height:100vh}
+nav{background:var(--nv);color:#fff;padding:16px 10px}nav h1{font-size:18px;margin:0 8px 16px}nav h1 span{color:var(--mi)}
+nav button{display:block;width:100%;text-align:left;background:none;border:0;color:#b9c6d8;padding:9px 10px;border-radius:8px;cursor:pointer;font:inherit}
+nav button.on,nav button:hover{background:#1b3358;color:#fff}
+main{padding:18px;min-width:0}aside{padding:18px 14px 18px 0}
+.c{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px}
+h2{margin:0 0 4px;font-size:20px}h3{margin:0 0 8px;font-size:15px}.mu{color:var(--mu);font-size:12px}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.k b{display:block;font-size:24px}
+.btn{background:var(--nv);color:#fff;border:0;border-radius:8px;padding:7px 12px;cursor:pointer;font:inherit;margin:2px}
+.btn.s{background:var(--mi);color:#04281f}.btn.o{background:none;color:var(--tx);border:1px solid var(--bd)}
+.bd{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;background:#dfe9f5;color:#14355f}
+.bd.ok{background:#d3f5ea;color:#0a5c47}.bd.w{background:#fde6cf;color:#8a4a0c}.bd.r{background:#f8d9d7;color:#8c2420}.demo{background:#fff3b0;color:#5a4a00}
+table{width:100%;border-collapse:collapse}td,th{padding:6px;border-bottom:1px solid var(--bd);text-align:left;font-size:13px;vertical-align:top}
+.sc{overflow-x:auto}
+.bar{height:8px;background:var(--bd);border-radius:9px;overflow:hidden}.bar i{display:block;height:100%;background:var(--mi)}
+.chat{max-height:340px;overflow:auto}.m{padding:8px 11px;border-radius:12px;margin:5px 0;max-width:85%}
+.m.a{background:#e3f1fb;color:#0b1f3a}.m.u{background:var(--mi);color:#04281f;margin-left:auto}
+input[type=text],textarea,select{width:100%;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx);font:inherit}
+canvas{width:100%;height:120px;background:var(--card);border-radius:8px}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--nv);color:#fff;padding:8px 14px;border-radius:9px;display:none;z-index:9}
+#menu{display:none}
+@media(max-width:900px){.app{grid-template-columns:1fr}nav{display:none}nav.open{display:block}aside{padding:0 18px 18px}#menu{display:inline-block}}
+@media print{nav,aside,#top{display:none}.app{display:block}}
+:root{--bg:#f5f3ff;--card:#fff;--tx:#1e1b3a;--mu:#6b6890;--bd:#e6e2f7;--nv:#2a1f6b;--mi:#7c5cff;--lb:#a995ff}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#120f26;--card:#1d1938;--tx:#ece9ff;--mu:#a29fc8;--bd:#322c5c;--nv:#0c0a1d}}
+body{background:radial-gradient(1200px 500px at 80% -10%,rgba(124,92,255,.16),transparent),var(--bg)}
+nav{background:linear-gradient(180deg,#2a1f6b,#4a2fa8 55%,#7a4fd8)}
+nav h1 span{color:#ffb3d1}nav button{color:#e0daff;padding:10px 12px;margin:2px 0;border-radius:12px}
+nav button.on,nav button:hover{background:rgba(255,255,255,.18);color:#fff}
+.c{border-radius:18px;box-shadow:0 8px 24px rgba(80,60,180,.08)}
+.btn{background:linear-gradient(135deg,#6d5dfc,#9b6bff);color:#fff;border-radius:10px}
+.btn.s{background:linear-gradient(135deg,#19b894,#4fd8c0);color:#fff}
+.m.a{background:#efeaff;color:#2a1f6b}.m.u{background:linear-gradient(135deg,#6d5dfc,#9b6bff);color:#fff}
+.bar{height:10px}.bar i{background:linear-gradient(90deg,#7c5cff,#ff8fb1)}
+.bd{background:#ece8ff;color:#4a2fa8}.bd.ok{background:#d7f7ee;color:#0a6b55}.bd.w{background:#ffe9d6;color:#9a4d0c}
+.hero{background:linear-gradient(135deg,#6d5dfc,#b46bff 60%,#ff8fb1);color:#fff;border-radius:22px;padding:20px;margin-bottom:14px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.hero h2{color:#fff}.hero p{margin:2px 0;opacity:.92}
+.ring{width:96px;height:96px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:20px;background:conic-gradient(#fff var(--p),rgba(255,255,255,.28) 0)}
+.ring span{width:76px;height:76px;border-radius:50%;background:#5a43d6;display:grid;place-items:center}
+.kc{display:flex;gap:12px;align-items:center;margin:0}
+.ic{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font-size:20px}
+.step{display:flex;gap:12px;align-items:flex-start;position:relative;padding-bottom:14px}
+.step:before{content:'';position:absolute;left:13px;top:30px;bottom:0;width:2px;background:var(--bd)}.step:last-child:before{display:none}
+.dot{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:13px;flex:none;background:var(--bd);color:var(--mu)}
+.dot.on{background:linear-gradient(135deg,#19b894,#4fd8c0);color:#fff}
+</style></head><body>
+<div class="app"><nav id="nav"><h1>RE<span>:</span>SAFE</h1><div id="tabs"></div></nav>
+<main><div id="top" style="display:flex;gap:8px;margin-bottom:12px"><button class="btn o" id="menu">☰</button><span class="bd demo">DEMO · 시뮬레이션 데이터 포함</span><span style="flex:1"></span><button class="btn o" onclick="reset()">데모 초기화</button></div><div id="v"></div></main>
+<aside id="side"></aside></div><div id="toast"></div>
+<script>
+const K='resafe_v1';
+const TABS=[['dash','🏠 Dashboard'],['report','💬 Report'],['trace','🔍 Trace & Remove'],['recover','🌿 Recover'],['prevent','🛡️ Prevent'],['vault','🗂️ Evidence Vault']];
+const ST={pending:['확인 대기','bd'],yes:['피해 콘텐츠로 확인','bd ok'],no:['관련 없음','bd'],more:['추가 확인 필요','bd w']};
+const RS=['요청 준비','요청 완료','검토 중','삭제 확인','반려','확인 불가'];
+const Q=[
+['어떤 피해를 겪으셨나요?',['딥페이크','불법 촬영','비동의 유포','유포 협박','온라인 사기','기타']],
+['피해를 처음 알게 된 시점은 언제인가요?',['오늘','최근 1주일','1개월 이내','기억나지 않음']],
+['어느 플랫폼에서 발견하셨나요? (직접 입력도 가능)',['SNS','커뮤니티','메신저','모름']],
+['가해자를 알고 계신가요?',['모르는 사람','아는 사람','확인 필요']],
+['협박이나 추가 요구가 있었나요?',['있음','없음','답변하고 싶지 않음']],
+['원하는 지원을 알려주세요.',['콘텐츠 삭제','경찰 신고 지원','법률 상담','심리 상담','재유포 모니터링']]];
+const F=['피해 유형','인지 시점','플랫폼','가해자','협박 여부','희망 지원'];
+const now=()=>new Date().toLocaleString('ko-KR');
+function def(){return{view:'dash',chat:[{r:'a',t:'안녕하세요. 한 번만 말씀해 주시면 제가 정리해 둘게요. 답하기 어려운 항목은 건너뛰어도 괜찮아요.'},{r:'a',t:Q[0][0]}],ans:[],
+traces:[['ShareHub-DEMO','demo-sharehub.invalid/p/1021',94.2,'합성 이미지'],['ClipBoard-DEMO','demo-clipboard.invalid/v/88',88.7,'영상'],['ForumX-DEMO','demo-forumx.invalid/t/5531',76.1,'합성 이미지'],['PicNest-DEMO','demo-picnest.invalid/a/9',63.4,'이미지'],['ChatRoom-DEMO','demo-chatroom.invalid/m/17',41.0,'이미지']].map((x,i)=>({id:'TR-'+(i+1),platform:x[0],url:x[1],score:x[2],type:x[3],at:'2026-11-1'+(i+1)+' 09:30',status:'pending'})),
+ev:[],rm:[],fp:null,mon:[],eeg:[],hunt:null,prev:[false,false,false,false],circle:[]}}
+let S;try{S=JSON.parse(localStorage.getItem(K))||def()}catch(e){S=def()}
+function save(){try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}}
+function reset(){S=def();save();go('dash');toast('초기화됨')}
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
+const $=s=>document.getElementById(s);
+function go(v){S.view=v;save();$('nav').classList.remove('open');render()}
+async function sha(buf){const h=await crypto.subtle.digest('SHA-256',buf);return[...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join('')}
+function prog(){const a=[S.ans.length>=Q.length,S.traces.some(t=>t.status!='pending'),S.ev.length>0,S.rm.length>0,!!S.fp,S.eeg.length>0];return Math.round(a.filter(Boolean).length/a.length*100)}
+function render(){
+$('tabs').innerHTML=TABS.map(t=>`<button class="${S.view==t[0]?'on':''}" onclick="go('${t[0]}')">${t[1]}</button>`).join('');
+$('v').innerHTML=({dash,report,trace,recover,prevent,vault})[S.view]();
+if(S.view=='recover')drawEEG();
+const hits=S.traces.filter(t=>t.status=='yes').length;
+$('side').innerHTML=`<div class="c"><h3>전체 대응 진행률</h3><div class="bar"><i style="width:${prog()}%"></i></div><div class="mu">${prog()}%</div></div>
+<div class="c"><h3>최근 발견 콘텐츠</h3>${S.traces.slice(0,3).map(t=>`<div class="mu">${t.platform} · ${t.score}%</div>`).join('')}</div>
+<div class="c"><h3>증거 보존</h3><b>${S.ev.length}</b>건 <div class="mu">삭제 요청 ${S.rm.length}건 · 확인된 피해 ${hits}건</div></div>
+<div class="c"><h3>보안 알림</h3><div class="mu">${S.mon.length?S.mon[0].msg:'재유포 알림 없음'}</div></div>`}
+function dash(){const tl=[['피해 접수',S.ans.length>=Q.length],['AI 콘텐츠 탐색 (DEMO)',true],['유사 후보 확인',S.traces.some(t=>t.status!='pending')],['증거 보존',S.ev.length>0],['삭제 요청 생성',S.rm.length>0],['재유포 모니터링',!!S.fp],['EEG 회복 세션',S.eeg.length>0]];
+return`<h2>Dashboard</h2><p class="mu">사례 DEMO-CASE-001 · 비동의 합성 콘텐츠</p>
+<div class="g"><div class="c k"><b>${S.ans.length>=Q.length?1:0}</b>접수된 사례</div><div class="c k"><b>${S.traces.length}</b>탐색 후보</div><div class="c k"><b>${S.ev.length}</b>증거 보존</div><div class="c k"><b>${S.rm.length}</b>삭제 요청</div><div class="c k"><b>${S.fp?'ON':'OFF'}</b>재유포 모니터링</div><div class="c k"><b>${S.eeg.length}</b>회복 세션</div></div>
+<div class="c"><h3>대응 타임라인</h3>${tl.map(t=>`<div>${t[1]?'✅':'⬜'} ${t[0]}</div>`).join('')}</div>
+<button class="btn" onclick="window.print()">통합 보고서 인쇄/PDF 저장</button>
+<div class="c" style="margin-top:12px"><h3>보고서 요약</h3><div class="mu">${summary()}</div></div>`}
+function summary(){return`접수 ${S.ans.length}/${Q.length}항목 · 확인된 피해 콘텐츠 ${S.traces.filter(t=>t.status=='yes').length}건 · 증거 ${S.ev.length}건 · 삭제 요청 ${S.rm.length}건. 본 문서는 참고용이며 정식 신고가 접수된 것이 아닙니다.`}
+function report(){const done=S.ans.length>=Q.length;
+return`<h2>Report · AI 피해 상담</h2><p class="mu">정식 경찰 신고가 자동 접수되지 않습니다. 정식 조사에서 추가 진술이 필요할 수 있습니다.</p>
+<div class="c chat" id="chat">${S.chat.map(m=>`<div class="m ${m.r}">${m.t}</div>`).join('')}</div>
+${done?'':`<div class="c">${Q[S.ans.length][1].map(o=>`<button class="btn o" onclick="ans('${o}')">${o}</button>`).join('')}<br>${['모름','기억나지 않음','확인 필요','답변하고 싶지 않음'].map(o=>`<button class="btn o" onclick="ans('${o}')">${o}</button>`).join('')}
+<div style="display:flex;gap:6px;margin-top:6px"><input type="text" id="ti" placeholder="직접 입력"><button class="btn" onclick="ans($('ti').value)">전송</button></div></div>`}
+${done?`<div class="c"><h3>구조화된 신고 초안 (수정 가능)</h3>${F.map((f,i)=>`<div class="mu">${f}</div><input type="text" value="${S.ans[i].replace(/"/g,'&quot;')}" onchange="S.ans[${i}]=this.value;save()">`).join('')}
+<p><button class="btn s" onclick="dl()">진술서 초안 다운로드(.txt)</button></p></div>`:''}`}
+function ans(t){t=(t||'').trim();if(!t)return;S.chat.push({r:'u',t});S.ans.push(t);
+S.chat.push({r:'a',t:S.ans.length<Q.length?Q[S.ans.length][0]:'모든 내용을 정리했어요. 아래에서 수정하고 문서를 받아 보세요.'});save();render();const c=$('chat');if(c)c.scrollTop=1e5}
+function dl(){const txt='[RE:SAFE 진술서 초안 - 참고용]\n'+F.map((f,i)=>`${f}: ${S.ans[i]}`).join('\n')+'\n\n※ 정식 신고 접수 문서가 아니며 조사 과정에서 추가 진술이 필요할 수 있습니다.';
+const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));a.download='statement-draft.txt';a.click()}
+function trace(){return`<h2>Trace & Remove</h2><p class="mu">아래 후보는 <span class="bd demo">DEMO</span> 가상 데이터입니다. 실제 외부 검색은 수행되지 않았습니다. AI 유사도는 동일 인물·동일 콘텐츠일 확률이 아닙니다.</p>
+<div class="c sc"><h3>6.1 AI Content Search 후보</h3><table><tr><th>플랫폼</th><th>URL</th><th>유사도</th><th>상태</th><th>작업</th></tr>
+${S.traces.map((t,i)=>`<tr><td>${t.platform}<br><span class="mu">${t.type}</span></td><td class="mu">${t.url}<br>${t.at}</td><td><b>${t.score}%</b><div class="bar" style="width:80px"><i style="width:${t.score}%"></i></div></td><td><span class="${ST[t.status][1]}">${ST[t.status][0]}</span></td>
+<td><button class="btn o" onclick="st(${i},'yes')">피해 확인</button><button class="btn o" onclick="st(${i},'no')">무관</button><button class="btn o" onclick="st(${i},'more')">추가확인</button>
+${t.status=='yes'?`<button class="btn s" onclick="addEv(${i})">증거 등록</button><button class="btn" onclick="addRm(${i})">삭제 요청</button>`:''}</td></tr>`).join('')}</table></div>
+<div class="c"><h3>6.6 재유포 모니터링 (실제 perceptual hash)</h3><p class="mu">기준 이미지를 등록하면 8×8 평균 해시를 저장하고, 변형 이미지(크롭·압축·밝기 변경)와 해밍 거리로 비교합니다.</p>
+<label class="btn o">기준 이미지 등록<input type="file" accept="image/*" hidden onchange="fpSet(this.files[0])"></label>
+<label class="btn o">변형 이미지 탐지<input type="file" accept="image/*" hidden onchange="fpCmp(this.files[0])"></label>
+<div class="mu">${S.fp?'기준 해시: '+S.fp:'기준 미등록'}</div>${S.mon.map(m=>`<div>${m.msg}</div>`).join('')}</div>
+<div class="c"><h3>6.2 화이트햇 엔진 (자체 테스트 환경 · 시뮬레이션)</h3><button class="btn" onclick="hunt()">Threat Hunting 실행</button>
+<div class="mu">허가된 자체 테스트 대상만 점검합니다. 비공개 접근·인증 우회는 구현하지 않습니다.</div>${S.hunt?S.hunt:''}</div>
+<div class="c"><h3>6.3 Leak Trace Graph (DEMO)</h3>${graph()}</div>
+<div class="c sc"><h3>6.5 삭제 요청 현황</h3>${S.rm.length?`<table>${S.rm.map((r,i)=>`<tr><td>${r.platform}</td><td class="mu">${r.url}</td><td><select onchange="S.rm[${i}].s=+this.value;save();render()">${RS.map((s,j)=>`<option value="${j}" ${r.s==j?'selected':''}>${s}</option>`).join('')}</select></td><td class="mu">${r.hist[r.hist.length-1]}</td></tr>`).join('')}</table>`:'<div class="mu">아직 요청이 없습니다.</div>'}<div class="mu">영구 삭제는 보장되지 않으며, 캐시·백업은 플랫폼 소관입니다.</div></div>`}
+function st(i,s){S.traces[i].status=s;save();render()}
+async function addEv(i){const t=S.traces[i];if(S.ev.some(e=>e.src==t.url))return toast('이미 등록됨');
+const h=await sha(new TextEncoder().encode(t.url+'|'+t.score));S.ev.push({id:'EV-'+String(S.ev.length+1).padStart(3,'0'),name:t.id+'-메타데이터',src:t.url,sha:h,at:now(),log:['등록 '+now()],ver:'미검증'});save();render();toast('증거 등록 완료')}
+function addRm(i){const t=S.traces[i];if(S.rm.some(r=>r.url==t.url))return toast('이미 요청됨');S.rm.push({platform:t.platform,url:t.url,s:0,hist:['요청 준비 · '+now()]});save();render();toast('삭제 요청서 생성')}
+function hash8(f){return new Promise(r=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=8;const x=c.getContext('2d');x.drawImage(im,0,0,8,8);const d=x.getImageData(0,0,8,8).data;const g=[];for(let i=0;i<64;i++)g.push(.3*d[i*4]+.59*d[i*4+1]+.11*d[i*4+2]);const m=g.reduce((a,b)=>a+b)/64;r(g.map(v=>v>m?1:0).join(''))};im.src=URL.createObjectURL(f)})}
+async function fpSet(f){if(!f)return;S.fp=await hash8(f);save();render();toast('기준 지문 저장')}
+async function fpCmp(f){if(!f)return;if(!S.fp)return toast('먼저 기준 이미지를 등록하세요');const h=await hash8(f);let d=0;for(let i=0;i<64;i++)if(h[i]!=S.fp[i])d++;const sim=((64-d)/64*100).toFixed(1);
+S.mon.unshift({msg:`${d<=10?'⚠️ 재유포 후보':'관련 낮음'} · 유사도 ${sim}% (해밍 거리 ${d}) · ${now()}`});save();render()}
+function hunt(){S.hunt=`<table><tr><th>항목</th><th>결과</th><th>구분</th></tr><tr><td>기존 지문 vs 신규 샘플</td><td>ForumX-DEMO 신규 URL 1건 유사</td><td><span class="bd ok">사실</span></td></tr><tr><td>동일 도메인 계열</td><td>운영자 동일 여부는 단정 불가</td><td><span class="bd w">추정</span></td></tr><tr><td>테스트 환경 점검</td><td>보안 헤더 누락 1건 (낮음, 시뮬레이션)</td><td><span class="bd demo">SIMULATED</span></td></tr></table>`;save();render()}
+function graph(){const n=[[60,40,'최초 게시물'],[220,20,'동일 콘텐츠 URL'],[220,80,'유사 콘텐츠'],[380,50,'공개 도메인']];
+return`<svg viewBox="0 0 460 110" style="width:100%"><line x1="100" y1="40" x2="180" y2="25" stroke="#3cc9a8" stroke-width="2"/><line x1="100" y1="40" x2="180" y2="80" stroke="#e8893a" stroke-dasharray="4"/><line x1="260" y1="25" x2="340" y2="50" stroke="#3cc9a8" stroke-width="2"/>
+${n.map(p=>`<g onclick="toast('${p[2]} (DEMO)')" style="cursor:pointer"><circle cx="${p[0]}" cy="${p[1]}" r="22" fill="#7fb8f0"/><text x="${p[0]}" y="${p[1]+36}" font-size="9" text-anchor="middle" fill="currentColor">${p[2]}</text></g>`).join('')}</svg><div class="mu">실선=확인된 관계 · 점선=추정 관계</div>`}
+function vault(){return`<h2>Evidence Vault</h2><p class="mu">SHA-256은 무결성 확인용이며 법적 증거능력을 자동 보장하지 않습니다.</p>
+<div class="c"><label class="btn s">파일 업로드<input type="file" hidden onchange="upl(this.files[0])"></label> <span class="mu">파일은 브라우저 안에서만 해시되며 외부로 전송되지 않습니다.</span></div>
+<div class="c sc">${S.ev.length?`<table><tr><th>ID</th><th>이름</th><th>SHA-256</th><th>수집</th><th></th></tr>${S.ev.map((e,i)=>`<tr><td>${e.id}</td><td>${e.name}<br><span class="mu">${e.src||'직접 업로드'}</span></td><td class="mu" style="word-break:break-all">${e.sha.slice(0,24)}…</td><td class="mu">${e.at}</td><td><button class="btn o" onclick="alert('${e.log.join('\\n')}')">이력</button></td></tr>`).join('')}</table>`:'<div class="mu">보존된 증거가 없습니다.</div>'}</div>`}
+async function upl(f){if(!f)return;const h=await sha(await f.arrayBuffer());S.ev.push({id:'EV-'+String(S.ev.length+1).padStart(3,'0'),name:f.name+' ('+f.type+', '+f.size+'B)',src:'',sha:h,at:now(),log:['업로드 '+now()],ver:'미검증'});save();render();toast('해시 생성 완료')}
+function recover(){return`<h2>Recover · EEG</h2><p class="mu"><span class="bd demo">SIMULATED</span> 가상 EEG 신호입니다. 의학적 진단·치료를 대체하지 않습니다.</p>
+<div class="c"><canvas id="cv" width="800" height="120"></canvas><div id="bands"></div><button class="btn s" onclick="sess()">뉴로피드백 세션 (가상 20초)</button></div>
+<div class="c" id="nf" style="text-align:center"><div id="orb" style="width:120px;height:120px;border-radius:50%;margin:auto;background:radial-gradient(circle,#fff6c9,#7fb8f0);opacity:.3;transition:.4s"></div><div class="mu">Alpha 상대 파워가 기준에 가까워지면 빛이 밝아집니다.</div></div>
+<div class="c"><h3>세션 기록</h3>${S.eeg.map(s=>`<div class="mu">${s.d} · Alpha ${s.a}% · ${s.t}초</div>`).join('')||'<div class="mu">기록 없음</div>'}</div>`}
+let amp=1;function sig(n,a){const o=[];for(let i=0;i<n;i++){const t=i/128;o.push(.5*Math.sin(2*Math.PI*2*t)+.6*Math.sin(2*Math.PI*6*t)+a*1.4*Math.sin(2*Math.PI*10*t)+.5*Math.sin(2*Math.PI*20*t)+.2*Math.sin(2*Math.PI*40*t)+(Math.random()-.5)*.4)}return o}
+function bandsOf(x){const N=x.length,B={Delta:[1,4],Theta:[4,8],Alpha:[8,13],Beta:[13,30],Gamma:[30,45]},P={};let tot=0;for(const k in B){let p=0;for(let f=B[k][0];f<B[k][1];f+=.5){let re=0,im=0;for(let i=0;i<N;i++){const w=2*Math.PI*f*i/128;re+=x[i]*Math.cos(w);im-=x[i]*Math.sin(w)}p+=re*re+im*im}P[k]=p;tot+=p}for(const k in P)P[k]=+(P[k]/tot*100).toFixed(1);return P}
+function drawEEG(){const x=sig(256,amp),c=$('cv'),g=c.getContext('2d');g.clearRect(0,0,800,120);g.strokeStyle='#3cc9a8';g.beginPath();x.forEach((v,i)=>g[i?'lineTo':'moveTo'](i*3.1,60+v*18));g.stroke();
+const P=bandsOf(x);$('bands').innerHTML=Object.entries(P).map(([k,v])=>`<div class="mu">${k} ${v}%</div><div class="bar"><i style="width:${v}%"></i></div>`).join('');return P}
+function sess(){let n=0,a0=.6;const iv=setInterval(()=>{amp=a0+n*.12;const P=drawEEG();$('orb').style.opacity=Math.min(1,P.Alpha/40);if(++n>=20){clearInterval(iv);S.eeg.push({d:now(),a:P.Alpha,t:20});save();render();toast('세션 저장')}},400)}
+function prevent(){const L=['공개 SNS 사진 위치 정보(EXIF) 제거','계정 공개 범위 점검','2단계 인증 활성화','검색 노출 개인정보 점검'];
+return`<h2>Prevent</h2><div class="c"><h3>예방 체크리스트</h3>${L.map((l,i)=>`<label style="display:block"><input type="checkbox" ${S.prev[i]?'checked':''} onchange="S.prev[${i}]=this.checked;save()"> ${l}</label>`).join('')}</div>
+<div class="c"><h3>Trusted Circle (DEMO)</h3><button class="btn" onclick="S.circle.push('구성원 '+(S.circle.length+1)+' · 초대 링크 resafe.invalid/join/'+Math.random().toString(36).slice(2,8));save();render()">초대 링크 생성</button>${S.circle.map(c=>`<div class="mu">${c}</div>`).join('')}<div class="mu">외부 메신저 실시간 검사는 공식 연동이 필요해 시뮬레이션만 제공합니다.</div></div>
+<div class="c"><h3>Invisible Watermark (실제 동작)</h3><input type="text" id="wmw" placeholder="어디에 업로드? (예: 인스타그램, 지인 DM)" style="margin-bottom:6px"><input type="text" id="wmp" placeholder="어떤 목적? (예: 프로필 사진, 포트폴리오)" style="margin-bottom:6px"><label class="btn s">삽입 후 PNG 저장<input type="file" accept="image/*" hidden onchange="wmEmbed(this.files[0])"></label><label class="btn o">워터마크 검증<input type="file" accept="image/*" hidden onchange="wmCheck(this.files[0])"></label><div id="wmr" style="margin-top:6px"></div>${(S.wmr||[]).map(w=>`<div class="mu">${esc(w.id)} · ${esc(w.at)} · ${esc(w.where)} · ${esc(w.purpose)}</div>`).join('')}<div class="mu">이미지에는 기록 번호만 들어가고 일시·장소·목적은 이 브라우저의 기록에 저장됩니다. 파란 채널 최하위 비트에 번호를 넣는 방식이라 PNG 원본에서만 검출됩니다. JPEG 압축·리사이즈·캡처 시 사라질 수 있으며, 유출자를 100% 특정한다는 의미가 아닙니다.</div></div>
+<div class="c"><h3>AI Face Privacy Filter</h3><div class="mu">아직 미포함입니다. 적대적 섭동은 테스트 모델과 검증이 필요해 다음 단계에서 구현합니다.</div></div>`}
+const esc=t=>String(t).replace(/[<>&"]/g,'');const rl=id=>{const r=(S.wmr||[]).find(x=>x.id==id);return r?`<div class="mu">업로드 기록 · ${esc(r.at)} · ${esc(r.where)} · ${esc(r.purpose)} · ${esc(r.file)}</div>`:'<div class="mu">이 브라우저에는 해당 번호의 기록이 없습니다 (다른 기기이거나 초기화됨)</div>'};
+function wmLoad(f){return new Promise(r=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=im.width;c.height=im.height;const x=c.getContext('2d');x.drawImage(im,0,0);r([c,x])};im.src=URL.createObjectURL(f)})}
+async function wmEmbed(f){if(!f)return;const rec={id:'WM-'+Math.random().toString(36).slice(2,8).toUpperCase(),where:$('wmw').value||'미입력',purpose:$('wmp').value||'미입력',at:now(),file:f.name};const code=rec.id.padEnd(16,' ');const [c,x]=await wmLoad(f);if(c.width*c.height<160)return toast('이미지가 너무 작습니다');const d=x.getImageData(0,0,c.width,c.height);let n=0;for(const ch of 'RSAF'+code)for(let i=7;i>=0;i--){d.data[n*4+2]=(d.data[n*4+2]&254)|(ch.charCodeAt(0)>>i&1);n++}x.putImageData(d,0,0);
+c.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='watermarked.png';a.click();(S.wmr=S.wmr||[]).push(rec);save();render();toast('워터마크 삽입 완료')},'image/png')}
+async function wmCheck(f){if(!f)return;const [c,x]=await wmLoad(f);const e=$('wmr');if(c.width*c.height<160){e.textContent='검증 불가: 이미지가 너무 작습니다';return}const d=x.getImageData(0,0,160,1).data;let s='';for(let k=0;k<20;k++){let v=0;for(let i=0;i<8;i++)v=(v<<1)|(d[(k*8+i)*4+2]&1);s+=String.fromCharCode(v)}
+e.innerHTML=s.startsWith('RSAF')?`<span class="bd ok">워터마크 검출</span> 기록 번호: <b>${esc(s.slice(4).trim())}</b>${rl(s.slice(4).trim())}`:'<span class="bd w">워터마크 미검출</span> (없거나 압축·변형으로 손상됨)'}
+function dash(){const done=[S.ans.length>=Q.length,true,S.traces.some(t=>t.status!='pending'),S.ev.length>0,S.rm.length>0,!!S.fp,S.eeg.length>0];
+const names=['피해 접수','AI 콘텐츠 탐색 (DEMO)','유사 후보 확인','증거 보존','삭제 요청 생성','재유포 모니터링','EEG 회복 세션'];
+const dest=['report','trace','trace','vault','trace','trace','recover'];const ni=done.indexOf(false);
+const cards=[['📝','접수된 사례',S.ans.length>=Q.length?1:0,'#efeaff'],['🔍','탐색 후보',S.traces.length,'#e3f1ff'],['🗂️','증거 보존',S.ev.length,'#d7f7ee'],['📨','삭제 요청',S.rm.length,'#ffe9d6'],['🛰️','재유포 감시',S.fp?'ON':'OFF','#ffe0ec'],['🌿','회복 세션',S.eeg.length,'#e6f7d9']];
+return`<div class="hero"><div class="ring" style="--p:${prog()}%"><span>${prog()}%</span></div><div><h2>지금까지 ${prog()}% 진행했어요</h2><p>DEMO-CASE-001 · 비동의 합성 콘텐츠</p><p>다음 단계: ${ni<0?'모든 단계 완료':names[ni]}</p></div></div>
+<div class="g">${cards.map(k=>`<div class="c kc"><div class="ic" style="background:${k[3]}">${k[0]}</div><div class="k"><b>${k[2]}</b><span class="mu">${k[1]}</span></div></div>`).join('')}</div>
+<div class="c"><h3>대응 타임라인</h3>${names.map((n,i)=>`<div class="step"><div class="dot ${done[i]?'on':''}">${done[i]?'✓':i+1}</div><div><div>${n}</div>${done[i]?'':`<button class="btn o" onclick="go('${dest[i]}')">하러 가기</button>`}</div></div>`).join('')}</div>
+<button class="btn" onclick="window.print()">통합 보고서 인쇄/PDF 저장</button>
+<div class="c" style="margin-top:12px"><h3>보고서 요약</h3><div class="mu">${summary()}</div></div>`}
+render();
+document.getElementById('menu').onclick=()=>$('nav').classList.toggle('open');
+</script></body></html>
