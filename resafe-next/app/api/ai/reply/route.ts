@@ -34,20 +34,27 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const parsed = ReplySchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 422 });
-  const { text, context, caseId, aiGuard } = parsed.data;
+  if (!parsed.success) return NextResponse.json({ error: '요청 형식이 올바르지 않습니다.' }, { status: 422 });
+  const { text, context, caseId } = parsed.data;
+  // 가드 OFF는 시연용이다. 화면이 보낸 값만 믿으면 누구나 가드를 끌 수 있으므로,
+  // 서버의 DEMO_TOKEN과 같은 X-Demo-Token 헤더가 있을 때만 OFF를 허용한다.
+  const demoToken = process.env.DEMO_TOKEN;
+  const aiGuard = parsed.data.aiGuard || !demoToken || req.headers.get('x-demo-token') !== demoToken;
 
   if (caseId) {
     const owned = await requireOwnedCase(db, caseId);
     if (!owned.ok) return NextResponse.json({ error: owned.error }, { status: 403 });
   }
 
-  const stripped = stripHiddenInstructions(text);
+  // 순서 주의: 사용자가 직접 입력한 문장은 원문 전체를 먼저 검사한다.
+  // (이전에는 숨은 지시 제거를 먼저 해서, 공격 문장이 지워진 빈 텍스트를 검사하는 바람에 차단·기록이 되지 않았다)
+  const guard = guardCheck(text);
+
+  // 판정을 통과한 입력 중, 붙여넣은 문서 속 '지시처럼 보이는 줄'만 추가로 걷어낸다 (간접 인젝션 대비)
+  const stripped = guard.verdict === 'ok' ? stripHiddenInstructions(text) : { clean: text, removed: 0, matchedRules: [] as string[] };
   if (stripped.removed > 0) {
     await logSecurityEvent(db, { caseId, userId: user.id, eventType: 'stripped', ruleMatched: stripped.matchedRules.join(','), guardOn: aiGuard });
   }
-
-  const guard = guardCheck(stripped.clean);
 
   if (guard.verdict === 'crisis') {
     await logSecurityEvent(db, { caseId, userId: user.id, eventType: 'crisis', ruleMatched: guard.matchedRule, guardOn: aiGuard });
@@ -74,7 +81,7 @@ export async function POST(req: NextRequest) {
     if (checked.verdict !== 'ok') {
       await logSecurityEvent(db, { caseId, userId: user.id, eventType: 'output_leak', ruleMatched: checked.verdict, guardOn: aiGuard });
     }
-    return NextResponse.json({ reply: checked.sanitized, verdict: checked.verdict, source: 'llm' });
+    return NextResponse.json({ reply: checked.sanitized, verdict: checked.verdict, source: 'llm', guardOn: aiGuard });
   } catch (err) {
     // ANTHROPIC_API_KEY 미설정 또는 호출 실패 → 규칙 기반 모의 응답으로 자연스럽게 폴백
     const fallback = mockAiReply(stripped.clean, aiGuard);

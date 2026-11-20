@@ -22,6 +22,11 @@ export interface TraceCandidate {
   status: Verification;
   pageSummary?: string;
   pageStrippedLines?: number;
+  /** 'web' = 공개 웹 재유포 탐색 결과, 'demo' = 시뮬레이션. 없으면 기존 데모 데이터 */
+  source?: 'web' | 'demo';
+  /** 'phash' = 실제 이미지를 받아 지각 해시로 계산, 'engine' = 검색 엔진 일치 판정 기준 추정치 */
+  method?: 'phash' | 'engine';
+  pageTitle?: string;
 }
 
 export interface EvidenceItem {
@@ -50,6 +55,8 @@ export interface WatermarkRecord {
   purpose: string;
   at: string;         // 실제 등록 시각
   file: string;
+  recipient?: string;  // 받는 사람별로 다른 코드를 넣었을 때 (유출 경로 좁히기)
+  method?: 'robust' | 'lsb';
 }
 
 export interface AiSecurityCounters {

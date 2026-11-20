@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireUser, audit } from '@/lib/supabase';
+import { requireUser, audit, safeError } from '@/lib/supabase';
 
 /** 워터마크 코드 자체는 서버에 저장하되, 이미지 원본은 전송하지 않는다 (클라이언트에서만 심음). */
 const CreateWatermarkSchema = z.object({
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   const auth = await requireUser(req);
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: 401 });
   const { data, error } = await auth.db.from('watermarks').select('*').order('created_at', { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return safeError(error);
   return NextResponse.json({ watermarks: data });
 }
 
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     })
     .select()
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return safeError(error);
 
   await audit(db, { actor: user.id, action: 'watermark.create', target: data.id });
   return NextResponse.json({ watermark: data }, { status: 201 });

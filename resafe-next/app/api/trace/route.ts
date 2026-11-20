@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireUser, audit, logSecurityEvent } from '@/lib/supabase';
+import { requireUser, audit, logSecurityEvent, safeError } from '@/lib/supabase';
 import { getTraceProvider } from '@/lib/ai/provider';
 import { guardCheck, stripHiddenInstructions } from '@/lib/ai/guard';
 
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     simulated: true,
   }));
   const { data, error } = await db.from('trace_results').insert(rows).select();
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return safeError(error);
 
   await audit(db, { caseId: parsed.data.caseId, actor: user.id, action: 'trace.run', target: provider.name });
   return NextResponse.json({ results: data });
@@ -79,7 +79,7 @@ export async function PATCH(req: NextRequest) {
     .update({ page_summary: summary, page_stripped_lines: stripped.removed })
     .eq('id', parsed.data.traceResultId)
     .eq('case_id', parsed.data.caseId);
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return safeError(error);
 
   return NextResponse.json({ summary, strippedLines: stripped.removed, guardVerdict: guard.verdict });
 }

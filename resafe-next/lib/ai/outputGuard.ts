@@ -11,7 +11,7 @@
  *     (완전히 정확한 탐지는 아니며, 과탐지가 있을 수 있다 — 보수적으로 막는 것이 목표다.)
  */
 
-export type OutputVerdict = 'ok' | 'canary_leak' | 'possible_pii_leak';
+export type OutputVerdict = 'ok' | 'canary_leak' | 'possible_pii_leak' | 'secondary_harm';
 
 export interface OutputCheckResult {
   verdict: OutputVerdict;
@@ -21,6 +21,9 @@ export interface OutputCheckResult {
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
 const PHONE_RE = /0\d{1,2}-?\d{3,4}-?\d{4}/;
 const CASE_ID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i; // uuid 형태
+
+/** 피해자를 탓하는 2차 가해 표현. 탈옥으로 끌어낸 응답이 그대로 나가지 않게 한다 */
+const HARM_PHRASES = ['피해자 잘못', '피해자에게도 책임', '당신에게도 책임', '자업자득', '조심했어야', '보낸 게 잘못', '왜 그런 사진을'];
 
 const SAFE_FALLBACK = '죄송해요, 지금 답변에 문제가 있어 보여 안전을 위해 다시 정리했어요. 질문을 조금 다르게 말씀해 주시겠어요?';
 
@@ -32,6 +35,10 @@ const SAFE_FALLBACK = '죄송해요, 지금 답변에 문제가 있어 보여 �
 export function checkOutput(output: string, canaryToken: string, userText: string): OutputCheckResult {
   if (output.includes(canaryToken)) {
     return { verdict: 'canary_leak', sanitized: SAFE_FALLBACK };
+  }
+
+  if (HARM_PHRASES.some((p) => output.includes(p))) {
+    return { verdict: 'secondary_harm', sanitized: SAFE_FALLBACK };
   }
 
   const patterns = [EMAIL_RE, PHONE_RE, CASE_ID_RE];
