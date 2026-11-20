@@ -1,6 +1,8 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { AppState } from '@/lib/types';
+import { getSupabaseBrowserClient } from '@/lib/supabaseBrowser';
 
 const ITEMS: { key: AppState['view']; label: string; icon: string }[] = [
   { key: 'dash', label: '대시보드', icon: '🏠' },
@@ -11,7 +13,22 @@ const ITEMS: { key: AppState['view']; label: string; icon: string }[] = [
   { key: 'vault', label: '증거 보관함', icon: '🗂️' },
 ];
 
-export default function Nav({ view, onChange }: { view: AppState['view']; onChange: (v: AppState['view']) => void }) {
+export default function Nav({
+  view,
+  onChange,
+  userEmail,
+}: {
+  view: AppState['view'];
+  onChange: (v: AppState['view']) => void;
+  userEmail?: string | null;
+}) {
+  const router = useRouter();
+
+  async function logout() {
+    await getSupabaseBrowserClient().auth.signOut();
+    router.push('/login');
+  }
+
   return (
     <nav className="card mb-6 flex gap-2 overflow-x-auto p-2 lg:mb-0 lg:flex-col lg:p-3">
       <div className="mb-2 hidden px-2 py-1 text-lg font-bold lg:block">
@@ -29,6 +46,14 @@ export default function Nav({ view, onChange }: { view: AppState['view']; onChan
           <span className="whitespace-nowrap">{item.label}</span>
         </button>
       ))}
+      {userEmail && (
+        <div className="mt-2 hidden border-t border-[#262f45] pt-2 lg:block">
+          <p className="truncate px-2 text-[11px] text-[var(--muted)]">{userEmail}</p>
+          <button onClick={logout} className="mt-1 w-full rounded-lg px-2 py-1.5 text-left text-xs text-[var(--muted)] hover:bg-[var(--panel-2)]">
+            로그아웃
+          </button>
+        </div>
+      )}
     </nav>
   );
 }

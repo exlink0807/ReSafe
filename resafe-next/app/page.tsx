@@ -1,6 +1,9 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAppState } from '@/lib/store';
+import { useSession } from '@/lib/useSession';
 import Nav from '@/components/Nav';
 import AiSecurityCard from '@/components/AiSecurityCard';
 import Dashboard from '@/components/Dashboard';
@@ -12,14 +15,25 @@ import Vault from '@/components/Vault';
 
 export default function Home() {
   const { state, update, hydrated } = useAppState();
+  const { session, loading: sessionLoading } = useSession();
+  const router = useRouter();
 
-  if (!hydrated) {
+  useEffect(() => {
+    if (!sessionLoading && !session) router.push('/login');
+  }, [sessionLoading, session, router]);
+
+  if (!hydrated || sessionLoading) {
     return <div className="p-8 text-center text-[var(--muted)]">불러오는 중…</div>;
+  }
+
+  if (!session) {
+    // 로그인 페이지로 이동 중. 잠깐 깜빡이는 걸 막기 위한 플레이스홀더.
+    return <div className="p-8 text-center text-[var(--muted)]">로그인 페이지로 이동 중…</div>;
   }
 
   return (
     <div className="mx-auto max-w-[1200px] px-4 py-6 lg:grid lg:grid-cols-[220px_1fr_260px] lg:gap-6">
-      <Nav view={state.view} onChange={(view) => update({ view })} />
+      <Nav view={state.view} onChange={(view) => update({ view })} userEmail={session.user.email} />
 
       <main className="min-h-[70vh]">
         {state.view === 'dash' && <Dashboard state={state} />}
