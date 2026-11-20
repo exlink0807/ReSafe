@@ -27,3 +27,18 @@ body {
 .btn-primary {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
 }
+
+/* 진술서 PDF 저장용 (lib/pdf/statement.ts의 printStatement()와 함께 동작) */
+#printDoc {
+  display: none;
+}
+@media print {
+  body.printing > *:not(#printDoc) {
+    display: none !important;
+  }
+  body.printing #printDoc {
+    display: block !important;
+    background: #fff;
+    color: #111;
+  }
+}

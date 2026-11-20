@@ -3,47 +3,78 @@
 import { useState } from 'react';
 import { AppState, INTAKE_QUESTIONS, INTAKE_FIELDS, SKIP_OPTIONS } from '@/lib/types';
 import { categorize } from '@/lib/ai/categorize';
-import { mockAiReply } from '@/lib/ai/guard';
+import { guardCheck } from '@/lib/ai/guard';
+import { getAiReply } from '@/lib/ai/client';
+import { printStatement } from '@/lib/pdf/statement';
 
 function esc(s: string) {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 }
 
+const CRISIS_SUPPORT_MESSAGE =
+  '지금 많이 힘드실 것 같아요. 혼자 견디지 않으셔도 됩니다. 1393(자살예방상담전화) 또는 109(디지털성범죄 피해자지원센터)로 연결해 드릴까요? 신고 작성은 잠시 미뤄두셔도 괜찮아요.';
+
 export default function Report({ state, update }: { state: AppState; update: (patch: Partial<AppState> | ((p: AppState) => Partial<AppState>)) => void }) {
   const [draft, setDraft] = useState('');
+  const [askDraft, setAskDraft] = useState('');
+  const [asking, setAsking] = useState(false);
   const [chat2Draft, setChat2Draft] = useState('');
+  const [sending2, setSending2] = useState(false);
+
   const step = state.ans.length;
   const done = step >= INTAKE_QUESTIONS.length;
   const q = !done ? INTAKE_QUESTIONS[step] : null;
 
   function answer(value: string) {
+    // 위기 신호는 신고 전 상담 중에도 즉시 감지해 지원 메시지를 끼워 넣는다 (답변 흐름은 막지 않음).
+    const crisis = guardCheck(value).verdict === 'crisis';
+
     update((prev) => {
       const ans = [...prev.ans, value];
       const nextStep = ans.length;
       const chat = [...prev.chat, { role: 'user' as const, text: value }];
+      if (crisis) chat.push({ role: 'ai' as const, text: CRISIS_SUPPORT_MESSAGE });
       if (nextStep < INTAKE_QUESTIONS.length) {
         chat.push({ role: 'ai' as const, text: INTAKE_QUESTIONS[nextStep].prompt });
       } else {
         chat.push({ role: 'ai' as const, text: '모든 항목을 정리했어요. 아래에서 분류된 범죄 유형과 제안을 확인해 주세요.' });
       }
-      return { ans, chat };
+      const aiSec = crisis ? { ...prev.aiSec, crisis: prev.aiSec.crisis + 1 } : prev.aiSec;
+      return { ans, chat, aiSec };
     });
     setDraft('');
   }
 
-  function send2() {
-    if (!chat2Draft.trim()) return;
-    const userText = chat2Draft;
-    setChat2Draft('');
+  async function askAi() {
+    if (!askDraft.trim() || asking) return;
+    const question = askDraft.trim();
+    setAskDraft('');
+    setAsking(true);
+    update((prev) => ({ chat: [...prev.chat, { role: 'user' as const, text: question }] }));
+    const result = await getAiReply(question, 'intake', state.aiGuard);
     update((prev) => {
-      const chat2 = [...prev.chat2, { role: 'user' as const, text: userText }];
-      const result = mockAiReply(userText, prev.aiGuard);
-      chat2.push({ role: 'ai' as const, text: result.html });
       const aiSec = { ...prev.aiSec };
+      if (result.verdict === 'blocked') aiSec.blocked++;
       if (result.verdict === 'crisis') aiSec.crisis++;
-      if (result.blocked) aiSec.blocked++;
-      return { chat2, aiSec };
+      return { chat: [...prev.chat, { role: 'ai' as const, text: result.reply }], aiSec };
     });
+    setAsking(false);
+  }
+
+  async function send2() {
+    if (!chat2Draft.trim() || sending2) return;
+    const userText = chat2Draft.trim();
+    setChat2Draft('');
+    setSending2(true);
+    update((prev) => ({ chat2: [...prev.chat2, { role: 'user' as const, text: userText }] }));
+    const result = await getAiReply(userText, 'consult', state.aiGuard);
+    update((prev) => {
+      const aiSec = { ...prev.aiSec };
+      if (result.verdict === 'blocked') aiSec.blocked++;
+      if (result.verdict === 'crisis') aiSec.crisis++;
+      return { chat2: [...prev.chat2, { role: 'ai' as const, text: result.reply }], aiSec };
+    });
+    setSending2(false);
   }
 
   const category = done ? categorize(state.ans) : null;
@@ -85,6 +116,19 @@ export default function Report({ state, update }: { state: AppState; update: (pa
                 건너뛰기
               </button>
             </div>
+
+            <div className="mt-3 flex gap-2 border-t border-[#262f45] pt-3">
+              <input
+                value={askDraft}
+                onChange={(e) => setAskDraft(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && askAi()}
+                placeholder="질문이 이해 안 되거나 궁금한 점이 있으면 AI에게 물어보세요"
+                className="flex-1 rounded-lg border border-[#262f45] bg-[var(--panel)] px-3 py-2 text-sm"
+              />
+              <button onClick={askAi} disabled={asking} className="rounded-lg border border-[#262f45] px-3 py-2 text-sm text-[var(--muted)] disabled:opacity-50">
+                {asking ? '...' : 'AI에게 물어보기'}
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -117,7 +161,7 @@ export default function Report({ state, update }: { state: AppState; update: (pa
               실제 죄명·처분은 수사기관이 최종 판단합니다.
             </p>
             <div className="mt-4 flex gap-2">
-              <button onClick={() => alert('이 환경에서는 window.print()를 이용한 PDF 저장은 데모 HTML 버전에서 지원됩니다. Next.js 버전에서는 동일한 로직을 이 버튼에 연결하세요.')} className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold text-white">
+              <button onClick={() => printStatement(state, category)} className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold text-white">
                 진술서 PDF로 저장
               </button>
             </div>
@@ -126,9 +170,10 @@ export default function Report({ state, update }: { state: AppState; update: (pa
       )}
 
       <div className="card p-5">
-        <h3 className="mb-2 text-sm font-semibold">🧯 추가 상담 (AI 보안 레이어 시연)</h3>
+        <h3 className="mb-2 text-sm font-semibold">🧯 추가 상담 (AI 보안 레이어)</h3>
         <p className="mb-3 text-xs text-[var(--muted)]">
-          아래 입력은 인젝션·역할 변경 시도 등을 모의로 탐지합니다. 사이드바에서 AI 가드를 꺼보면 차단 전/후 차이를 볼 수 있어요.
+          입력은 먼저 규칙 기반 가드를 통과한 뒤에만 AI가 답합니다. ANTHROPIC_API_KEY가 설정되어 있으면 실제 Claude
+          응답을, 없으면 규칙 기반 모의 응답을 보여줍니다. 사이드바에서 AI 가드를 꺼보면 방어 전/후 차이를 볼 수 있어요.
         </p>
         <div className="mb-3 max-h-60 space-y-2 overflow-y-auto rounded-lg bg-[var(--panel-2)] p-3">
           {state.chat2.map((m, i) => (
@@ -144,7 +189,9 @@ export default function Report({ state, update }: { state: AppState; update: (pa
         <div className="flex gap-2">
           <input value={chat2Draft} onChange={(e) => setChat2Draft(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send2()}
             placeholder="자유롭게 입력해 보세요" className="flex-1 rounded-lg border border-[#262f45] bg-[var(--panel)] px-3 py-2 text-sm" />
-          <button onClick={send2} className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold text-white">전송</button>
+          <button onClick={send2} disabled={sending2} className="btn-primary rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+            {sending2 ? '...' : '전송'}
+          </button>
         </div>
       </div>
     </div>

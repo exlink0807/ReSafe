@@ -33,6 +33,9 @@ export default function Home() {
       <aside className="mt-6 lg:mt-0">
         <AiSecurityCard state={state} update={update} />
       </aside>
+
+      {/* 진술서 PDF 저장용 인쇄 전용 영역 (lib/pdf/statement.ts) — 평소엔 숨겨져 있음 */}
+      <div id="printDoc" />
     </div>
   );
 }

@@ -26,6 +26,26 @@ export async function requireUser(req: NextRequest) {
   return { db, user: data.user };
 }
 
+/**
+ * 세션/권한 격리 헬퍼.
+ *
+ * 핵심 원칙: 어떤 case_id를 조회할지는 "대화 내용(AI나 사용자가 입력한 문장)"이 아니라
+ * 항상 "서버가 DB에서 검증한 소유권"으로 결정한다. AI(LLM)가 대화 중에 다른 case_id나
+ * 다른 사용자 이름을 언급하더라도, 그 값은 쿼리에 절대 쓰이지 않는다 — 클라이언트가 보낸
+ * caseId는 여기서 소유권을 확인한 뒤에만 사용되고, 확인에 실패하면 즉시 에러로 막는다.
+ * RLS가 최후 방어선이지만, 이 함수는 "AI 레이어가 실수로/공격당해서 잘못된 case_id를
+ * 만들어내는 것"까지 한 겹 더 막기 위한 명시적 체크다.
+ */
+export async function requireOwnedCase(
+  db: SupabaseClient,
+  caseId: string
+): Promise<{ ok: true } | { ok: false; error: 'forbidden' | 'not_found' }> {
+  const { data, error } = await db.from('cases').select('id').eq('id', caseId).maybeSingle();
+  if (error) return { ok: false, error: 'not_found' };
+  if (!data) return { ok: false, error: 'forbidden' }; // RLS 때문에 남의 case는 조회 자체가 안 됨 → null
+  return { ok: true };
+}
+
 export async function audit(
   db: SupabaseClient,
   params: { caseId?: string; actor: string; action: string; target?: string }
@@ -40,7 +60,7 @@ export async function audit(
 
 export async function logSecurityEvent(
   db: SupabaseClient,
-  params: { caseId?: string; userId: string; eventType: 'blocked' | 'stripped' | 'crisis' | 'leak_demo'; ruleMatched?: string; guardOn: boolean }
+  params: { caseId?: string; userId: string; eventType: 'blocked' | 'stripped' | 'crisis' | 'leak_demo' | 'output_leak'; ruleMatched?: string; guardOn: boolean }
 ) {
   await db.from('ai_security_events').insert({
     case_id: params.caseId ?? null,

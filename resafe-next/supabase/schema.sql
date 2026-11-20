@@ -101,7 +101,7 @@ create table ai_security_events(
   id bigserial primary key,
   case_id uuid references cases on delete cascade,
   user_id uuid references auth.users,
-  event_type text not null,             -- 'blocked' | 'stripped' | 'crisis' | 'leak_demo'
+  event_type text not null,             -- 'blocked' | 'stripped' | 'crisis' | 'leak_demo' | 'output_leak'
   rule_matched text,                    -- 매칭된 가드 규칙명 (원문은 기록하지 않음)
   guard_on boolean not null,
   at timestamptz default now()
