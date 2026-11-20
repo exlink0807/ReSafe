@@ -1,18 +1,17 @@
 /**
- * 실제 LLM(Claude) 연동 래퍼.
+ * 실제 LLM 연동 래퍼. Anthropic(Claude) 또는 Google(Gemini) 중 하나를 쓸 수 있다.
+ *
+ * 어떤 공급자를 쓸지는 환경변수로 정한다:
+ *  - AI_PROVIDER=anthropic | gemini  (명시하면 그걸 그대로 씀)
+ *  - 명시하지 않으면: ANTHROPIC_API_KEY가 있으면 anthropic, 없고 GEMINI_API_KEY만 있으면 gemini,
+ *    둘 다 없으면 에러를 던져서 호출하는 쪽(app/api/ai/reply/route.ts)이 규칙 기반 모의 응답으로 폴백한다.
  *
  * 설계 원칙 (lib/ai/guard.ts와 함께 읽을 것):
  *  - 이 함수는 항상 "규칙 기반 1차 필터(guardCheck/stripHiddenInstructions)를 통과한 뒤"에만 호출된다.
- *    즉 여기서 LLM에 건네는 텍스트는 이미 숨은 지시가 제거되고, 인젝션/위기 신호가 아닌 것으로
- *    판정된 입력이다. 원문을 그대로 LLM에 넘기지 않는다.
- *  - ANTHROPIC_API_KEY가 없거나 호출이 실패하면 예외를 던진다(조용히 거짓 응답을 지어내지 않음).
- *    호출하는 쪽(app/api/ai/reply/route.ts)이 이 예외를 잡아 규칙 기반 모의 응답으로 폴백한다 —
- *    그래야 API 키가 없는 환경(예: 해커톤 심사 노트북)에서도 데모가 끊기지 않는다.
+ *  - 키가 없거나 호출이 실패하면 예외를 던진다(조용히 거짓 응답을 지어내지 않음).
+ *    호출하는 쪽이 이 예외를 잡아 규칙 기반 모의 응답으로 폴백한다.
  *  - 시스템 프롬프트에는 canary 토큰을 심어 "이 토큰을 응답에 포함하면 안 된다"고 명시한다.
- *    응답에 그 토큰이 그대로 나오면 시스템 프롬프트 유출로 간주한다 (lib/ai/outputGuard.ts).
- *
- * 이 파일은 네트워크가 차단된 개발 환경에서 작성되어, 실제 Anthropic API 호출을
- * 이 세션 안에서 테스트하지 못했습니다. API 키를 넣고 실제로 호출해보면서 확인해 주세요.
+ *  - 응답이 20초 안에 안 오면 타임아웃으로 포기하고 폴백한다(무한 대기 방지).
  */
 
 export interface LlmMessage {
@@ -24,6 +23,8 @@ export interface LlmCallResult {
   text: string;
   canaryToken: string;
 }
+
+type Provider = 'anthropic' | 'gemini';
 
 function generateCanaryToken(): string {
   return `CANARY-${Math.random().toString(36).slice(2, 10)}-${Date.now().toString(36)}`;
@@ -47,27 +48,49 @@ function buildSystemPrompt(canaryToken: string, context: 'intake' | 'consult'): 
   return base.join('\n');
 }
 
-export async function callLlm(
+function normalizeHistory(history: LlmMessage[]): LlmMessage[] {
+  const merged: LlmMessage[] = [];
+  for (const m of history) {
+    const last = merged[merged.length - 1];
+    if (last && last.role === m.role) {
+      last.content = `${last.content}\n${m.content}`;
+    } else {
+      merged.push({ ...m });
+    }
+  }
+  while (merged.length > 0 && merged[0].role !== 'user') merged.shift();
+  return merged;
+}
+
+function resolveProvider(): Provider {
+  const explicit = (process.env.AI_PROVIDER || '').toLowerCase();
+  if (explicit === 'anthropic' || explicit === 'gemini') return explicit;
+  if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
+  if (process.env.GEMINI_API_KEY) return 'gemini';
+  throw new Error('ANTHROPIC_API_KEY 또는 GEMINI_API_KEY 중 하나도 설정되지 않았습니다.');
+}
+
+async function callAnthropic(
   userText: string,
   context: 'intake' | 'consult',
-  history: LlmMessage[] = []
-): Promise<LlmCallResult> {
+  history: LlmMessage[],
+  canaryToken: string
+): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY가 설정되지 않았습니다. 규칙 기반 모의 응답으로 폴백해야 합니다.');
-  }
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY가 설정되지 않았습니다.');
 
-  // 동적 import: 키가 없는 환경(대부분의 데모 실행)에서 패키지 로드 비용을 피한다.
   const { default: Anthropic } = await import('@anthropic-ai/sdk');
   const client = new Anthropic({ apiKey });
-  const canaryToken = generateCanaryToken();
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-5',
-    max_tokens: 512,
-    system: buildSystemPrompt(canaryToken, context),
-    messages: [...history, { role: 'user', content: userText }],
-  });
+  const response = await client.messages.create(
+    {
+      model: 'claude-sonnet-5-5',
+      max_tokens: 512,
+      system: buildSystemPrompt(canaryToken, context),
+      messages: [...normalizeHistory(history), { role: 'user', content: userText }],
+    },
+    { timeout: 20_000 }
+  );
 
   const text = response.content
     .filter((block): block is { type: 'text'; text: string } => block.type === 'text')
@@ -75,6 +98,82 @@ export async function callLlm(
     .join('\n')
     .trim();
 
-  if (!text) throw new Error('LLM 응답이 비어 있습니다.');
+  if (!text) throw new Error('Anthropic 응답이 비어 있습니다.');
+  return text;
+}
+
+async function callGemini(
+  userText: string,
+  context: 'intake' | 'consult',
+  history: LlmMessage[],
+  canaryToken: string
+): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY가 설정되지 않았습니다.');
+  const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+
+  const contents = [
+    ...normalizeHistory(history).map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
+    { role: 'user', parts: [{ text: userText }] },
+  ];
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20_000);
+
+  let res: Response;
+  try {
+    res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: buildSystemPrompt(canaryToken, context) }] },
+          contents,
+          generationConfig: { maxOutputTokens: 512 },
+        }),
+        signal: controller.signal,
+      }
+    );
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('Gemini 응답이 20초 안에 오지 않았습니다(타임아웃).');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '');
+    throw new Error(`Gemini API 호출 실패 (${res.status}): ${errBody.slice(0, 300)}`);
+  }
+
+  const data = await res.json();
+  const text = (data?.candidates?.[0]?.content?.parts ?? [])
+    .map((p: { text?: string }) => p.text ?? '')
+    .join('\n')
+    .trim();
+
+  if (!text) {
+    const finishReason = data?.candidates?.[0]?.finishReason;
+    throw new Error(`Gemini 응답이 비어 있습니다. finishReason=${finishReason ?? 'unknown'}`);
+  }
+  return text;
+}
+
+export async function callLlm(
+  userText: string,
+  context: 'intake' | 'consult',
+  history: LlmMessage[] = []
+): Promise<LlmCallResult> {
+  const provider = resolveProvider();
+  const canaryToken = generateCanaryToken();
+
+  const text =
+    provider === 'anthropic'
+      ? await callAnthropic(userText, context, history, canaryToken)
+      : await callGemini(userText, context, history, canaryToken);
+
   return { text, canaryToken };
 }
