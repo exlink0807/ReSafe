@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * 서버에서 사용할 Supabase 클라이언트는 반드시 '사용자의 JWT'로 만든다.
@@ -18,8 +18,16 @@ export function dbFromToken(accessToken: string): SupabaseClient {
 
 export async function requireUser(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
-  const token = authHeader?.replace(/^Bearer\s+/i, '') || cookies().get('sb-access-token')?.value;
+  const headerToken = authHeader?.replace(/^Bearer\s+/i, '');
+  const token = headerToken || cookies().get('sb-access-token')?.value;
   if (!token) return { error: 'unauthorized' as const };
+  // 쿠키로 인증하는 상태 변경 요청은 같은 출처에서 온 것만 허용 (CSRF 방어).
+  // Authorization 헤더 방식은 다른 사이트가 붙일 수 없으므로 검사하지 않는다.
+  if (!headerToken && !['GET', 'HEAD'].includes(req.method)) {
+    const origin = req.headers.get('origin');
+    const host = req.headers.get('host');
+    if (!origin || !host || new URL(origin).host !== host) return { error: 'unauthorized' as const };
+  }
   const db = dbFromToken(token);
   const { data, error } = await db.auth.getUser(token);
   if (error || !data.user) return { error: 'unauthorized' as const };
@@ -69,4 +77,12 @@ export async function logSecurityEvent(
     rule_matched: params.ruleMatched ?? null,
     guard_on: params.guardOn,
   });
+}
+
+/**
+ * DB 오류 원문(테이블·컬럼·제약 조건 이름)을 응답에 그대로 내보내지 않는다. 원문은 서버 로그에만 남긴다.
+ */
+export function safeError(error: { message?: string; code?: string } | null, status = 400) {
+  console.error('[db]', error?.code, error?.message);
+  return NextResponse.json({ error: '요청을 처리하지 못했어요.' }, { status });
 }

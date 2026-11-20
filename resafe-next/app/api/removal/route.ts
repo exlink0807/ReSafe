@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireUser, audit } from '@/lib/supabase';
+import { requireUser, audit, safeError } from '@/lib/supabase';
 import { REMOVAL_STATUSES } from '@/lib/types';
 
 const CreateRemovalSchema = z.object({
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     .insert({ case_id: parsed.data.caseId, trace_result_id: parsed.data.traceResultId ?? null, platform: parsed.data.platform })
     .select()
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return safeError(error);
 
   await audit(db, { caseId: parsed.data.caseId, actor: user.id, action: 'removal.create', target: data.id });
   return NextResponse.json({ removal: data }, { status: 201 });
@@ -50,7 +50,7 @@ export async function PATCH(req: NextRequest) {
     .eq('id', parsed.data.id)
     .select()
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return safeError(error);
 
   await audit(db, { actor: user.id, action: 'removal.status_update', target: `${parsed.data.id}:${parsed.data.status}` });
   return NextResponse.json({ removal: data });

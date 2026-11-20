@@ -139,7 +139,7 @@ create policy own_cases on cases for all using (user_id = auth.uid()) with check
 do $$ declare t text; begin
   foreach t in array array[
     'reports','media_assets','trace_results','security_findings',
-    'evidence','removal_requests','monitoring_records','audit_logs'
+    'evidence','removal_requests','monitoring_records'
   ] loop
     execute format('alter table %I enable row level security', t);
     execute format(
@@ -153,10 +153,33 @@ do $$ declare t text; begin
   end loop;
 end $$;
 
+-- 감사 로그·보안 이벤트는 '조회와 추가'만 허용한다 (수정·삭제 정책 없음 = 거부).
+-- 계정이 탈취돼도 공격자가 자기 흔적을 지울 수 없게 하기 위함.
+alter table audit_logs enable row level security;
+create policy audit_select on audit_logs for select
+  using (exists(select 1 from cases c where c.id = audit_logs.case_id and c.user_id = auth.uid()) or actor = auth.uid());
+create policy audit_insert on audit_logs for insert
+  with check (actor = auth.uid() and (case_id is null or exists(select 1 from cases c where c.id = audit_logs.case_id and c.user_id = auth.uid())));
+
+-- 이전 정책은 쓰기 조건이 'user_id 본인 OR 내 케이스'라서, 본인 user_id로 남의 case_id에 가짜 이벤트를 넣을 수 있었다.
+-- 쓰기는 '본인 user_id AND (케이스 없음 OR 내 케이스)'로 제한한다.
 alter table ai_security_events enable row level security;
-create policy own_or_case_rows on ai_security_events for all
-  using (user_id = auth.uid() or exists(select 1 from cases c where c.id = ai_security_events.case_id and c.user_id = auth.uid()))
-  with check (user_id = auth.uid() or exists(select 1 from cases c where c.id = ai_security_events.case_id and c.user_id = auth.uid()));
+create policy sec_select on ai_security_events for select
+  using (user_id = auth.uid() or exists(select 1 from cases c where c.id = ai_security_events.case_id and c.user_id = auth.uid()));
+create policy sec_insert on ai_security_events for insert
+  with check (user_id = auth.uid() and (case_id is null or exists(select 1 from cases c where c.id = ai_security_events.case_id and c.user_id = auth.uid())));
+
+-- removal_requests.trace_result_id가 다른 케이스의 추적 결과를 가리키지 못하게 한다.
+create or replace function check_removal_trace() returns trigger language plpgsql as $$
+begin
+  if new.trace_result_id is not null and not exists(
+    select 1 from trace_results t where t.id = new.trace_result_id and t.case_id = new.case_id) then
+    raise exception 'trace_result_id does not belong to this case';
+  end if;
+  return new;
+end $$;
+create trigger removal_trace_same_case before insert or update on removal_requests
+  for each row execute function check_removal_trace();
 
 -- Storage: 비공개 버킷 'evidence' (경로: {user_id}/{evidence_id})를 대시보드에서 만들고
 -- 본인 폴더만 접근하도록 정책을 설정하세요. 텍스트 증거의 원문은 이 버킷에도, DB에도 저장하지 않는다

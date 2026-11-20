@@ -3,6 +3,11 @@
 import { guardCheck, mockAiReply } from './guard';
 import { getSupabaseBrowserClient } from '@/lib/supabaseBrowser';
 
+/** 시연용 데모 토큰. 화면 메모리에만 두고 localStorage에 저장하지 않는다. */
+let demoToken = '';
+export function setDemoToken(t: string) { demoToken = t; }
+export function hasDemoToken() { return demoToken.length > 0; }
+
 export interface AiReplyResponse {
   reply: string;
   verdict: string;
@@ -30,7 +35,11 @@ export async function getAiReply(
 
     const res = await fetch('/api/ai/reply', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        ...(!aiGuard && demoToken ? { 'X-Demo-Token': demoToken } : {}),
+      },
       body: JSON.stringify({ text, context, aiGuard }),
     });
     if (!res.ok) throw new Error(`서버 응답 실패: ${res.status}`);

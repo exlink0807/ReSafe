@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireUser, audit } from '@/lib/supabase';
+import { requireUser, audit, safeError } from '@/lib/supabase';
 
 const CreateCaseSchema = z.object({
   caseType: z.string().min(1),
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: 401 });
   const { db } = auth;
   const { data, error } = await db.from('cases').select('*').order('created_at', { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return safeError(error);
   return NextResponse.json({ cases: data });
 }
 
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     })
     .select()
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return safeError(error);
 
   await audit(db, { caseId: data.id, actor: user.id, action: 'case.create', target: data.id });
   return NextResponse.json({ case: data }, { status: 201 });

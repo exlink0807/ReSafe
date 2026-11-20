@@ -7,12 +7,8 @@ import { guardCheck } from '@/lib/ai/guard';
 import { getAiReply } from '@/lib/ai/client';
 import { printStatement } from '@/lib/pdf/statement';
 
-function esc(s: string) {
-  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
-}
-
 const CRISIS_SUPPORT_MESSAGE =
-  '지금 많이 힘드실 것 같아요. 혼자 견디지 않으셔도 됩니다. 1393(자살예방상담전화) 또는 109(디지털성범죄 피해자지원센터)로 연결해 드릴까요? 신고 작성은 잠시 미뤄두셔도 괜찮아요.';
+  '지금 많이 힘드실 것 같아요. 혼자 견디지 않으셔도 됩니다. 109(자살예방 상담전화, 24시간)로 연락해 보세요. 위험이 급하면 112·119로, 피해 영상 삭제 지원은 디지털성범죄피해자지원센터(02-735-8994)에서 도와드려요. 신고 작성은 잠시 미뤄두셔도 괜찮아요.';
 
 export default function Report({ state, update }: { state: AppState; update: (patch: Partial<AppState> | ((p: AppState) => Partial<AppState>)) => void }) {
   const [draft, setDraft] = useState('');
@@ -85,8 +81,8 @@ export default function Report({ state, update }: { state: AppState; update: (pa
         <h2 className="mb-3 text-sm font-semibold">📝 신고 전 상담 (경찰·수사기관 매뉴얼 순서)</h2>
         <div className="mb-3 max-h-80 space-y-2 overflow-y-auto rounded-lg bg-[var(--panel-2)] p-3">
           {state.chat.map((m, i) => (
-            <div key={i} className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${m.role === 'ai' ? 'bg-[var(--panel)]' : 'ml-auto btn-primary text-white'}`}
-              dangerouslySetInnerHTML={{ __html: m.role === 'user' ? esc(m.text) : m.text }} />
+            <div key={i} className={`max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm ${m.role === 'ai' ? 'bg-[var(--panel)]' : 'ml-auto btn-primary text-white'}`}
+              >{m.text}</div>
           ))}
         </div>
 
@@ -177,8 +173,8 @@ export default function Report({ state, update }: { state: AppState; update: (pa
         </p>
         <div className="mb-3 max-h-60 space-y-2 overflow-y-auto rounded-lg bg-[var(--panel-2)] p-3">
           {state.chat2.map((m, i) => (
-            <div key={i} className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${m.role === 'ai' ? 'bg-[var(--panel)]' : 'ml-auto btn-primary text-white'}`}
-              dangerouslySetInnerHTML={{ __html: m.role === 'user' ? esc(m.text) : m.text }} />
+            <div key={i} className={`max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm ${m.role === 'ai' ? 'bg-[var(--panel)]' : 'ml-auto btn-primary text-white'}`}
+              >{m.text}</div>
           ))}
         </div>
         <div className="mb-2 flex flex-wrap gap-2 text-xs">

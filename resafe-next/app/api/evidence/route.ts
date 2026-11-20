@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireUser, audit, logSecurityEvent } from '@/lib/supabase';
+import { requireUser, audit, logSecurityEvent, safeError } from '@/lib/supabase';
 import { stripHiddenInstructions, guardCheck } from '@/lib/ai/guard';
 
 /**
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
       })
       .select()
       .single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error) return safeError(error);
 
     await audit(db, { caseId: parsed.data.caseId, actor: user.id, action: 'evidence.add_text', target: data.id });
     return NextResponse.json({ evidence: data }, { status: 201 });
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     .insert({ case_id: parsed.data.caseId, file_name: parsed.data.fileName, file_type: parsed.data.fileType, hash: parsed.data.sha256 })
     .select()
     .single();
-  if (mediaErr) return NextResponse.json({ error: mediaErr.message }, { status: 400 });
+  if (mediaErr) return safeError(mediaErr);
 
   const { data, error } = await db
     .from('evidence')
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     })
     .select()
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return safeError(error);
 
   await audit(db, { caseId: parsed.data.caseId, actor: user.id, action: 'evidence.add_binary', target: data.id });
   return NextResponse.json({ evidence: data }, { status: 201 });
